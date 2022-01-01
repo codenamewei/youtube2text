@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='youtube2text',
-    version='0.0.1',
+    version='0.0.3',
     install_requires=[], # add any additional packages that 
         # needs to be installed along with your package. Eg: 'numpy', 
         # Recommend not to fix the versions 

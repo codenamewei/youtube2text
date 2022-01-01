@@ -23,27 +23,26 @@ logger = logging.getLogger(__name__)
 class Youtube2Text:
     """Youtube2Text Class to translates audio to text file"""
 
-    def __createdir(path):
+    def __createdir(self, path):
 
         if not os.path.exists(path):
 
             os.makedirs(path)
 
-    def __init__(self, rootpath = None):
+    def __init__(self, outputpath = None):
 
-
-        if rootpath is None: 
+        if outputpath is None: 
 
             rootpath = os.path.join(os.path.expanduser('~'), 'youtube2text')
 
-        logger.info(f"Youtube2Text content file saved at path {rootpath}")
+        logger.info(f"Youtube2Text content file saved at path {outputpath}")
 
         # create a speech recognition object
         self.recognizer = sr.Recognizer()
 
-        self.textpath = os.path.join(rootpath, "text")
-        self.wavpath = os.path.join(rootpath, "wav")
-        self.audiochunkpath = os.path.join(rootpath, "audio-chunks")
+        self.textpath = os.path.join(outputpath, "text")
+        self.wavpath = os.path.join(outputpath, "wav")
+        self.audiochunkpath = os.path.join(outputpath, "audio-chunks")
         
         self.__createdir(self.textpath)
         self.__createdir(self.wavpath)
@@ -72,7 +71,7 @@ class Youtube2Text:
         
         yt = YouTube(urlpath)
 
-        stream_url = yt.streams.all()[0].url
+        stream_url = yt.streams[0].url
 
         audio, err = (
             ffmpeg
@@ -90,12 +89,14 @@ class Youtube2Text:
         wavfile = wavpath.split(os.sep)[-1]
 
         filename = wavfile.split(".")[0]
+
+        csvfilename = filename + ".csv"
         
-        csvfullpath = os.path.join(self.textpath, filename + ".csv")
+        csvfullpath = os.path.join(self.textpath, csvfilename)
 
         if os.path.exists(csvfullpath): 
 
-            logger.info(f"{csvfullpath} exist. Conversion of speech -> text skipped")
+            logger.info(f"{csvfilename} exists. Conversion of speech -> text skipped")
 
         else:
 
@@ -105,8 +106,6 @@ class Youtube2Text:
                 os.mkdir(audiochunkfullpath)
 
             df = self._get_large_audio_transcription(wavpath, audiochunkfullpath)
-
-            df['label'] = 0
 
             df.to_csv(csvfullpath, index = False)
 

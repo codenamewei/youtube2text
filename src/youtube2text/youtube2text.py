@@ -47,7 +47,7 @@ class Youtube2Text:
         self.__createdir(self.wavpath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, filetitle = None):
+    def url2text(self, urlpath, wavfiletitle = None):
         '''
         Convert youtube url to text
 
@@ -56,26 +56,28 @@ class Youtube2Text:
             filetitle (str, optional): Filename of output file (.wav, *.csv)
         '''
 
-        if filetitle is None:
+        if wavfiletitle is None:
 
             now = datetime.now()
-            filetitle = now.strftime("%Y%h%d_%H%M%S")
+            wavfiletitle = now.strftime("%Y%h%d_%H%M%S")
 
         # Write the audio buffer to file for testing
-        wavfullpath = os.path.join(self.wavpath, filetitle + ".wav")
+        wavfullpath = os.path.join(self.wavpath, wavfiletitle + ".wav")
 
-        self.url2wav(urlpath, filetitle)
+        self.url2wav(urlpath, wavfiletitle)
 
         self.wav2text(wavfullpath)
 
-    def url2wav(self, urlpath, wavfullpath):
+    def url2wav(self, urlpath, wavfilename = None):
         '''
         Convert youtube url to wav
 
         Parameters:
             urlpath (str): Youtube url
-            wavfullpath (str, optional): Full path to output wav file (.wav)
+            wavfilename (str, optional): Output filename of *.wav 
         '''
+
+        wavfullpath = os.path.join(self.wavpath, wavfilename + ".wav")
 
         if os.path.exists(wavfullpath):
             logger.info(f'Audio file exists. Skip downloading')
@@ -104,7 +106,7 @@ class Youtube2Text:
         Convert wav to csv file
 
         Parameters:
-            wavpath (str): Full path to wav file
+            wavpath (str): Filename of *.wav
         '''
         wavfile = wavpath.split(os.sep)[-1]
 
@@ -139,7 +141,7 @@ class Youtube2Text:
         # open the audio file using pydub
         logger.info(f'Wav -> Text: {wavpath.split(os.sep)[-1]}')
         sound = AudioSegment.from_wav(wavpath)
-        
+
         # split audio sound where silence is 700 miliseconds or more and get chunks
         chunks = split_on_silence(sound,
             # experiment with this value for your target audio file

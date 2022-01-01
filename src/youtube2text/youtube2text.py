@@ -33,7 +33,7 @@ class Youtube2Text:
 
         if outputpath is None: 
 
-            rootpath = os.path.join(os.path.expanduser('~'), 'youtube2text')
+            outputpath = os.path.join(os.path.expanduser('~'), 'youtube2text')
 
         logger.info(f"Youtube2Text content file saved at path {outputpath}")
 
@@ -55,13 +55,15 @@ class Youtube2Text:
             now = datetime.now()
             filetitle = now.strftime("%Y%h%d_%H%M``````%S")
 
+        wavfilename = filetitle + ".wav"
+
         # Write the audio buffer to file for testing
-        wavfullpath = os.path.join(self.wavpath, filetitle + ".wav")
+        wavfullpath = os.path.join(self.wavpath, wavfilename)
 
         if os.path.exists(wavfullpath):
-            logger.info(f'Audio file of {filetitle} exists. Skip downloading')
+            logger.info(f'Audio file of {wavfilename} exists. Skip downloading')
         else:
-            logger.info(f'File: {filetitle} not exists. Start downloading')
+            logger.info(f'File: {wavfilename} not exists. Start downloading')
 
             self.url2wav(urlpath, wavfullpath)
 

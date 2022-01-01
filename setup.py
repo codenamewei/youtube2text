@@ -6,12 +6,11 @@ with open("readme.md", "r", encoding="utf-8") as f:
 
 setup(
     name='youtube2text',
-    version='0.0.6',
+    version='0.0.9-alpha',
     install_requires=[
-        'pytube==11.0.1',
+        'pytube==11.0.2',
         'pydub==0.25.1',
         'SpeechRecognition==3.8.1',
-        'ffprobe==0.5',
         'pandas>=1.1.5',
         'ffmpeg-python==0.2.0'
     ],

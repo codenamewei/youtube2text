@@ -6,7 +6,7 @@ with open("readme.md", "r", encoding="utf-8") as f:
 
 setup(
     name='youtube2text',
-    version='0.0.3',
+    version='0.0.4',
     install_requires=[
         'pytube==11.0.1',
         'pydub==0.25.1',
@@ -22,9 +22,9 @@ setup(
     license='MIT',
     author='codenamewei',
     author_email='codenamewei@gmail.com',
-    description='Convert youtube urls to text with speech recognition.',
+    description='Convert youtube urls to text with speech recognition',
     long_description=long_description,
-    include_package_data=True
+    include_package_data=True,
     long_description_content_type="text/markdown",
     classifiers=[
     "Programming Language :: Python :: 3",

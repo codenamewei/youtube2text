@@ -52,11 +52,11 @@ converter = Youtube2Text()
 converter.url2text(urlpath="https://www.youtube.com/watch?v=Ad9Q8rM0Am0&t=114s")
 ```
 
-Check out more at [howtouse.ipynb]()
+Check out more at [howtouse.ipynb](tests/howtouse.ipynb)
 
 ### Functions 
 
-- Youtube -> Text
+#### Youtube -> Text
 ```
 def url2text(self, urlpath, outfilename = None):
     '''
@@ -68,7 +68,7 @@ def url2text(self, urlpath, outfilename = None):
     '''
 ```
 
-### Youtube -> Audio
+#### Youtube -> Audio
 ```
 def url2audio(self, urlpath, audiofilename, audiofilepath = None):
     '''
@@ -81,7 +81,7 @@ def url2audio(self, urlpath, audiofilename, audiofilepath = None):
     '''
 ```
 
-### Audio -> Text
+#### Audio -> Text
 ```
 def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None):
     '''

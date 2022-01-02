@@ -22,12 +22,15 @@ logger = logging.getLogger(__name__)
 class Youtube2Text:
     '''Youtube2Text Class to translates audio to text file'''
 
+    __audioextension = ".wav"
+    __textextension = ".csv"
+
     def __init__(self, outputpath = None):
         '''
         Youtube2Text constructor
 
         Parameters:
-            outputpath (str): Output directory to save *.wav, *.csv
+            outputpath (str): Output directory to save audio and csv files
         '''
 
         if outputpath is None: 
@@ -36,55 +39,62 @@ class Youtube2Text:
 
         logger.info(f"Youtube2Text content file saved at path {outputpath}")
 
+        
         # create a speech recognition object
         self.recognizer = sr.Recognizer()
 
         self.textpath = os.path.join(outputpath, "text")
-        self.wavpath = os.path.join(outputpath, "wav")
+        self.audiopath = os.path.join(outputpath, "wav")
         self.audiochunkpath = os.path.join(outputpath, "audio-chunks")
         
         self.__createdir(self.textpath)
-        self.__createdir(self.wavpath)
+        self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, wavfiletitle = None):
+    def url2text(self, urlpath, outfilename = None):
         '''
         Convert youtube url to text
 
         Parameters:
             urlpath (str): Youtube url
-            filetitle (str, optional): Filename of output file (.wav, *.csv)
+            outfilename (str, optional): Filename of output file (.wav, *.csv)
         '''
 
-        if wavfiletitle is None:
+        if outfilename is None:
 
-            now = datetime.now()
-            wavfiletitle = now.strftime("%Y%h%d_%H%M%S")
+            outfilename = self.__generatefiletitle()
 
-        # Write the audio buffer to file for testing
-        wavfullpath = os.path.join(self.wavpath, wavfiletitle + ".wav")
+        elif outfilename.endswith(self.__audioextension):
 
-        self.url2wav(urlpath, wavfiletitle)
+            outfilename = outfilename.split(self.__audioextension)[0]
+            
+        elif outfilename.endswith(self.__textextension):
 
-        self.wav2text(wavfullpath)
+            outfilename = outfilename.split(self.__textextension)[0]
 
-    def url2wav(self, urlpath, wavfilename = None):
+        self.url2audio(urlpath, audiofilename = outfilename)
+        self.audio2text(audiofilename = outfilename, textfilename = outfilename)
+
+    def url2audio(self, urlpath, audiofilename, audiofilepath = None):
         '''
-        Convert youtube url to wav
+        Convert youtube url to audiofile
 
         Parameters:
             urlpath (str): Youtube url
-            wavfilename (str, optional): Output filename of *.wav 
+            audiofilename (str): Filename of audio file (*.wav)
+            audiofilepath (str, optional): Absolute / relative path to save audio file
         '''
 
-        wavfullpath = os.path.join(self.wavpath, wavfilename + ".wav")
+        audiofilename = self.__configurefilename(filename = audiofilename, ext = self.__audioextension)
 
-        if os.path.exists(wavfullpath):
-            logger.info(f'Audio file exists. Skip downloading')
-        else:
-            logger.info(f'Audio file not exists. Start downloading')
+        audiofullpath = self.__configurepath(filename = audiofilename, designatedpath = audiofilepath, fallbackpath = self.audiopath)
+
+        if os.path.exists(audiofullpath):
+            logger.info(f'Audio file exists at {audiofullpath}. Skip downloading')
 
             return
+        else:
+            logger.info(f'Audio file not exists. Start downloading')
 
         yt = YouTube(urlpath)
 
@@ -97,50 +107,63 @@ class Youtube2Text:
             .run(capture_stdout=True)
         )
 
-        with open(wavfullpath, 'wb') as f:
+        with open(audiofullpath, 'wb') as f:
             f.write(audio)
 
+        logger.info("Download completed")
 
-    def wav2text(self, wavpath):
+
+    def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None):
         '''
-        Convert wav to csv file
+        Convert audio to csv file
 
         Parameters:
-            wavpath (str): Filename of *.wav
+            audiofilename (str): Filename of audio file (*.wav)
+            audiofilepath (str, optional): Absolute / relative path to save audio file
+            textfilename (str, optional): Filename of text file (*.csv)
+            textfilepath (str, optional): Absolute / relative path to save text file
         '''
-        wavfile = wavpath.split(os.sep)[-1]
 
-        wavfilename = wavfile.split(".")[0]
+        audiofilename = self.__configurefilename(filename = audiofilename, ext = self.__audioextension)
+        textfilename = self.__configurefilename(filename = textfilename, ext = self.__textextension)
 
-        csvfilename = wavfilename + ".csv"
-        
-        csvfullpath = os.path.join(self.textpath, csvfilename)
+        audiofullpath = self.__configurepath(filename = audiofilename, designatedpath = audiofilepath, fallbackpath = self.audiopath)
+        textfullpath = self.__configurepath(filename = textfilename, designatedpath = textfilepath, fallbackpath = self.textpath)
 
-        if os.path.exists(csvfullpath): 
+        if os.path.exists(textfullpath): 
 
-            logger.info(f"{csvfilename} exists. Conversion of speech -> text skipped")
+            logger.info(f"{textfullpath} exists. Conversion of speech -> text skipped")
 
         else:
+        
+            df = self._get_large_audio_transcription(audiofullpath)
 
-            audiochunkfullpath = os.path.join(self.audiochunkpath, wavfilename)
+            df.to_csv(textfullpath, index = False)
 
-            if not os.path.isdir(audiochunkfullpath):
-                os.mkdir(audiochunkfullpath)
+            logger.info(f"Output text file saved at {textfullpath}")
 
-            df = self._get_large_audio_transcription(wavpath, audiochunkfullpath)
-
-            df.to_csv(csvfullpath, index = False)
-
-            logger.info(f"Output text file saved at {csvfullpath}")
-
-    def _get_large_audio_transcription(self, wavpath, audiochunkfullpath):
+    def _get_large_audio_transcription(self, audiofullpath):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
+
+        Parameters:
+            audiofullpath (str): Absolute/relative path to  text file
+
+        Returns:
+            DataFrame: df with rows of texts
         '''
+
+        audiofilename = audiofullpath.split(os.sep)[-1].split(self.__audioextension)[0]
+
+        audiochunkfullpath = os.path.join(self.audiochunkpath, audiofilename)
+
+        if not os.path.isdir(audiochunkfullpath):
+            os.mkdir(audiochunkfullpath)
+
         # open the audio file using pydub
-        logger.info(f'Wav -> Text: {wavpath.split(os.sep)[-1]}')
-        sound = AudioSegment.from_wav(wavpath)
+        logger.info(f'Wav -> Text: {audiofilename}')
+        sound = AudioSegment.from_wav(audiofullpath)
 
         # split audio sound where silence is 700 miliseconds or more and get chunks
         chunks = split_on_silence(sound,
@@ -182,11 +205,57 @@ class Youtube2Text:
         return df
     
 
+    def __generatefiletitle(self):
+        '''
+        Generate filename according to time stamp if did not provided
+
+        Returns:
+            str: timestamp str
+        '''
+        
+        now = datetime.now()
+
+        return now.strftime("%Y%h%d_%H%M%S")
+
     def __createdir(self, path):
         '''
-        Create directory
+        Create directory resursively if directories do not exist
         '''
         if not os.path.exists(path):
 
             os.makedirs(path)
     
+    def __configurefilename(self, filename, ext):
+        '''
+        Append extension to filename if not done
+
+        Returns:
+            str: filename with extension
+        '''
+        if filename is None:
+            
+            filename = self.__generatefiletitle()
+
+        if not filename.endswith(ext):
+
+            filename = filename + ext
+            
+        return filename
+
+        
+    def __configurepath(self, filename, designatedpath, fallbackpath):
+        '''
+        Configure path to follows designated path or fallbackpath if former doesnt exist
+
+        Returns:
+            str: Absolute path to a file
+        '''
+        if designatedpath is not None:
+
+            if not os.path.exists(designatedpath):
+
+                logger.warning(f'"{designatedpath}" not exist. Execution abort')
+            else:
+                return os.path.join(designatedpath, filename)
+        else:
+             return os.path.join(fallbackpath, filename)

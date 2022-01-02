@@ -15,9 +15,9 @@
 
 ### What does the library does?
 
-- Youtube -> Text: Translate youtube urls as text file (.csv)
-- Youtube -> Audio: Downloads youtube urls as audio file (.wav)
-- Audio -> Text: Translate audio file (.wav) to text file (.csv)
+- **Youtube -> Text**: Translate youtube urls as text file (.csv)
+- **Youtube -> Audio**: Downloads youtube urls as audio file (.wav)
+- **Audio -> Text**: Translate audio file (.wav) to text file (.csv)
 
 
 Three folders will be created to store the output files.  
@@ -33,7 +33,7 @@ Three folders will be created to store the output files.
 │       ├── chunk2.wav
 │       └── chunk3.wav
 │   
-├── wav/
+└── wav/
     └── 2022Jan02_011802.csv
 ```
 
@@ -52,40 +52,45 @@ converter = Youtube2Text()
 converter.url2text(urlpath="https://www.youtube.com/watch?v=Ad9Q8rM0Am0&t=114s")
 ```
 
+Check out more at [howtouse.ipynb]()
+
 ### Functions 
 
-### Youtube -> Text
+- Youtube -> Text
 ```
-def url2text(self, urlpath, filetitle = None):
-        '''
-        Convert youtube url to text
-
-        Parameters:
-            urlpath (str): Youtube url
-            filetitle (str, optional): Filename of output file (.wav, *.csv)
-        '''
-```
-
-
-### Youtube -> Audio
-```
-def url2wav(self, urlpath, wavfullpath):
+def url2text(self, urlpath, outfilename = None):
     '''
-    Convert youtube url to wav
+    Convert youtube url to text
 
     Parameters:
         urlpath (str): Youtube url
-        wavfullpath (str, optional): Full path to output wav file (.wav)
+        outfilename (str, optional): Filename of output file (.wav, *.csv)
+    '''
+```
+
+### Youtube -> Audio
+```
+def url2audio(self, urlpath, audiofilename, audiofilepath = None):
+    '''
+    Convert youtube url to audiofile
+
+    Parameters:
+        urlpath (str): Youtube url
+        audiofilename (str): Filename of audio file (*.wav)
+        audiofilepath (str, optional): Absolute / relative path to save audio file
     '''
 ```
 
 ### Audio -> Text
 ```
-def wav2text(self, wavfullpath):
+def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None):
     '''
-    Convert wav to csv file
+    Convert audio to csv file
 
     Parameters:
-        wavpath (str): Full path to wav file
+        audiofilename (str): Filename of audio file (*.wav)
+        audiofilepath (str, optional): Absolute / relative path to save audio file
+        textfilename (str, optional): Filename of text file (*.csv)
+        textfilepath (str, optional): Absolute / relative path to save text file
     '''
 ```

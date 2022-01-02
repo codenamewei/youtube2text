@@ -39,13 +39,16 @@ Three folders will be created to store the output files.
 
 
 ### How to install
+Install and update using [pip](https://pypi.org/project/youtube2text/)
 ```
 pip install youtube2text
 ```
 
+
 ### Build from source 
 ```
 git clone <this_repo>
+cd <this_repo>
 python setup.py install
 ```
 

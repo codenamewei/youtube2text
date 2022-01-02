@@ -43,6 +43,12 @@ Three folders will be created to store the output files.
 pip install youtube2text
 ```
 
+### Build from source 
+```
+git clone <this_repo>
+python setup.py install
+```
+
 ### How to use 
 ```
 from youtube2text import Youtube2Text

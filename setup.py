@@ -6,13 +6,13 @@ with open("readme.md", "r", encoding="utf-8") as f:
 
 setup(
     name='youtube2text',
-    version='0.0.9-beta',
+    version='0.0.9-alpha',
     install_requires=[
-        'pytube==11.0.2',
-        'pydub==0.25.1',
-        'SpeechRecognition==3.8.1',
+        'pytube>=11.0.2',
+        'pydub>=0.25.1',
+        'SpeechRecognition>=3.8.1',
         'pandas>=1.1.5',
-        'ffmpeg-python==0.2.0'
+        'ffmpeg-python>=0.2.0',
     ],
     package_dir={"": "src"},
     packages=find_packages(where="src"),

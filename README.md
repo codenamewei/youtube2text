@@ -15,9 +15,9 @@
 
 ### What does the library does?
 
-- **Youtube -> Text**: Translate youtube urls as text file (.csv)
+- **Youtube -> Text**: Retrieve youtube url as audio(.wav) and text file (.csv)
 - **Youtube -> Audio**: Downloads youtube urls as audio file (.wav)
-- **Audio -> Text**: Translate audio file (.wav) to text file (.csv)
+- **Audio -> Text**: Translates existing audio file (.wav) to text file (.csv)
 
 
 Three folders will be created to store the output files.  
@@ -33,7 +33,7 @@ Three folders will be created to store the output files.
 │       ├── chunk2.wav
 │       └── chunk3.wav
 │   
-└── wav/
+└── text/
     └── 2022Jan02_011802.csv
 ```
 

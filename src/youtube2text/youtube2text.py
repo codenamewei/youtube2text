@@ -5,7 +5,9 @@ import os
 import speech_recognition as sr
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+from transformers import pipeline
 from datetime import datetime
+import librosa
 import logging
 import sys
 
@@ -51,7 +53,7 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfilename = None):
+    def url2text(self, urlpath, outfilename = None, mode = 'default'):
         '''
         Convert youtube url to text
 
@@ -73,7 +75,7 @@ class Youtube2Text:
             outfilename = outfilename.split(self.__textextension)[0]
 
         self.url2audio(urlpath, audiofilename = outfilename)
-        self.audio2text(audiofilename = outfilename, textfilename = outfilename)
+        self.audio2text(audiofilename = outfilename, textfilename = outfilename, mode = mode)
 
     def url2audio(self, urlpath, audiofilename, audiofilepath = None):
         '''
@@ -113,7 +115,7 @@ class Youtube2Text:
         logger.info("Download completed")
 
 
-    def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None):
+    def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None, mode = 'default'):
         '''
         Convert audio to csv file
 
@@ -135,14 +137,14 @@ class Youtube2Text:
             logger.info(f"{textfullpath} exists. Conversion of speech -> text skipped")
 
         else:
-        
-            df = self._get_large_audio_transcription(audiofullpath)
+
+            df = self._get_large_audio_transcription(audiofullpath, mode)
 
             df.to_csv(textfullpath, index = False)
 
             logger.info(f"Output text file saved at {textfullpath}")
 
-    def _get_large_audio_transcription(self, audiofullpath):
+    def _get_large_audio_transcription(self, audiofullpath, mode):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
@@ -153,6 +155,9 @@ class Youtube2Text:
         Returns:
             DataFrame: df with rows of texts
         '''
+
+
+        logging.info(f"Loading {mode} audio2text mode")
 
         audiofilename = audiofullpath.split(os.sep)[-1].split(self.__audioextension)[0]
 
@@ -178,6 +183,11 @@ class Youtube2Text:
         whole_text = []
         wav_info = []
 
+        if mode == "huggingface":
+
+            pipe = pipeline("automatic-speech-recognition")
+
+
         # process each chunk
         for i, audio_chunk in enumerate(chunks, start=1):
             # export audio chunk and save it in
@@ -185,19 +195,37 @@ class Youtube2Text:
             chunkfilename = f"chunk{i}.wav"
             chunkfilepath = os.path.join(audiochunkfullpath, chunkfilename)
             audio_chunk.export(chunkfilepath, format="wav")
-            # recognize the chunk
-            with sr.AudioFile(chunkfilepath) as source:
-                audio_listened = self.recognizer.record(source)
-                # try converting it to text
-                try:
-                    text = self.recognizer.recognize_google(audio_listened)
-                except sr.UnknownValueError as e:
-                    whole_text.append("None")
-                else:
-                    text = f"{text.capitalize()}. "
-                    whole_text.append(text)
 
-                wav_info.append(chunkfilename)
+            pipe = pipeline("automatic-speech-recognition")
+
+            if mode == 'default':
+                # recognize the chunk
+                with sr.AudioFile(chunkfilepath) as source:
+                    audio_listened = self.recognizer.record(source)
+                    # try converting it to text
+                    try:
+                        text = self.recognizer.recognize_google(audio_listened)
+                    except sr.UnknownValueError as e:
+                        whole_text.append("None")
+                    else:
+                        text = f"{text.capitalize()}. "
+                        whole_text.append(text)
+
+                    
+            elif mode == 'huggingface':
+                
+                y, sr = librosa.load(chunkfilepath)
+                audiojson = pipe(y)
+
+                whole_text.append(f"{audiojson['text'].capitalize()}. ")#)
+
+            else:
+
+                logger.critical(f"Audio to text mode not recognizable. Input: {mode}. Select between \"default\" and \"huggingface\".")
+
+            wav_info.append(chunkfilename)
+                
+
 
         # return as df
         df = pd.DataFrame({"text": whole_text, "wav": wav_info})

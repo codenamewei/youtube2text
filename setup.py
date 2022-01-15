@@ -13,6 +13,8 @@ setup(
         'SpeechRecognition>=3.8.1',
         'pandas>=1.1.5',
         'ffmpeg-python>=0.2.0',
+        'librosa>=0.8.1', 
+        'transformers>=4.12.5'
     ],
     package_dir={"": "src"},
     packages=find_packages(where="src"),

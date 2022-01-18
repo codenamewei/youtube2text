@@ -15,9 +15,9 @@
 
 ### What does the library does?
 
-- **Youtube -> Text**: Translate youtube urls as text file (.csv)
-- **Youtube -> Audio**: Downloads youtube urls as audio file (.wav)
-- **Audio -> Text**: Translate audio file (.wav) to text file (.csv)
+- **Youtube -> Text**: Translate youtube urls as text file (csv)
+- **Youtube -> Audio**: Downloads youtube urls as audio file (wav, flac)
+- **Audio -> Text**: Translate audio file (wav, flac) to text file (csv)
 
 
 Three folders will be created to store the output files.  
@@ -61,6 +61,12 @@ converter.url2text(urlpath="https://www.youtube.com/watch?v=Ad9Q8rM0Am0&t=114s")
 Check out more at [howtouse.ipynb](tests/howtouse.ipynb)
 
 ### Functions 
+- Support audio output of   
+    - wav
+    - flac
+- Support Automatic Speech Recognition with backend
+    - Native Python backend 
+    - Huggingface
 
 #### Youtube -> Text
 ```

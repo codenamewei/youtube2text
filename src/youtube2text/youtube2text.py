@@ -24,8 +24,9 @@ logger = logging.getLogger(__name__)
 class Youtube2Text:
     '''Youtube2Text Class to translates audio to text file'''
 
-    __audioextension = ".wav"
-    __textextension = ".csv"
+    __audioextension = ["flac", "wav"]
+    __textextension = "csv"
+    __asrmode = ["default", "huggingface"]
 
     def __init__(self, outputpath = None):
         '''
@@ -53,51 +54,80 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfilename = None, mode = 'default'):
+    def url2text(self, urlpath, outfile = None, audioformat = "flac", asrmode = 'default'):
         '''
         Convert youtube url to text
 
         Parameters:
             urlpath (str): Youtube url
-            outfilename (str, optional): Filename of output file (.wav, *.csv)
+            outfile (str, optional): File path/name of output file (.csv)
+            audioformat (str, optional): Audioformat supported in self.__audioextension
+            asrmode (str, optional): ASR mode in self.__asrmode
         '''
+        
+        if outfile.endswith(self.__textextension) is False:
 
-        if outfilename is None:
-
-            outfilename = self.__generatefiletitle()
-
-        elif outfilename.endswith(self.__audioextension):
-
-            outfilename = outfilename.split(self.__audioextension)[0]
+            logger.warning("outfile poorly defined. outfile have to ends with .csv")
             
-        elif outfilename.endswith(self.__textextension):
+            outfile = None
 
-            outfilename = outfilename.split(self.__textextension)[0]
+        outfilepath = None
+        
+        if(outfile.find(os.sep) != -1) and (outfile.endswith(self.__textextension)):
 
-        self.url2audio(urlpath, audiofilename = outfilename)
-        self.audio2text(audiofilename = outfilename, textfilename = outfilename, mode = mode)
+            textfile = outfile.split(os.sep)[-1]
+            outfilepath = outfile[0:len(outfile)  - len(textfile) - 1]
 
-    def url2audio(self, urlpath, audiofilename, audiofilepath = None):
+        else:
+            if(outfile.endswith(self.__textextension)):
+                textfile = outfile
+                filename = outfile.split(".")[0]
+                
+            else:    
+                filename = self.__generatefiletitle()
+                textfile = filename + "." + self.__textextension
+    
+            if audioformat not in self.__audioextension:
+                audioformat = self.__audioextension[0]
+
+            audiofile = filename + "." +  audioformat
+    
+
+        audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
+        textfile = self.__configurepath(textfile, outfilepath, self.textpath)
+        
+        self.url2audio(urlpath, audiofile = audiofile)
+        self.audio2text(audiofile = audiofile, textfilename = textfile, asrmode = asrmode)
+
+    def url2audio(self, urlpath, audiofile = None):
         '''
         Convert youtube url to audiofile
 
         Parameters:
             urlpath (str): Youtube url
-            audiofilename (str): Filename of audio file (*.wav)
-            audiofilepath (str, optional): Absolute / relative path to save audio file
+            audiofile (str, optional): File path/name to save audio file
         '''
 
-        audiofilename = self.__configurefilename(filename = audiofilename, ext = self.__audioextension)
+        outfilepath = None
 
-        audiofullpath = self.__configurepath(filename = audiofilename, designatedpath = audiofilepath, fallbackpath = self.audiopath)
+        if(audiofile is not None) and (audiofile.find(".") != -1):
 
-        if os.path.exists(audiofullpath):
-            logger.info(f'Audio file exists at {audiofullpath}. Skip downloading')
+            audioformat = audiofile.split(".")[-1]
 
-            return
+            if audioformat in self.__audioextension:
+                
+                audiofile = audiofile.split(os.sep)[-1]
+                outfilepath = audiofile[0:len(audiofile) - len(audiofile) - 1]
+            
+            else:
+                audiofile = self.__generatefiletitle + self.__audioextension[0]
+
         else:
-            logger.info(f'Audio file not exists. Start downloading')
 
+            audiofile = self.__generatefiletitle + self.__audioextension[0]
+
+        audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
+                
         yt = YouTube(urlpath)
 
         stream_url = yt.streams[0].url
@@ -105,59 +135,70 @@ class Youtube2Text:
         audio, err = (
             ffmpeg
             .input(stream_url)
-            .output("pipe:", format='wav', acodec='pcm_s16le')  # Select WAV output format, and pcm_s16le auidio codec. My add ar=sample_rate
+            .output("pipe:", format=audioformat, acodec='pcm_s16le')  # Select WAV output format, and pcm_s16le auidio codec. My add ar=sample_rate
             .run(capture_stdout=True)
         )
 
-        with open(audiofullpath, 'wb') as f:
+        with open(audiofile, 'wb') as f:
             f.write(audio)
 
         logger.info("Download completed")
 
 
-    def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None, mode = 'default'):
+    def audio2text(self, audiofile, textfile = None, asrmode = 'default'):
         '''
         Convert audio to csv file
 
         Parameters:
-            audiofilename (str): Filename of audio file (*.wav)
-            audiofilepath (str, optional): Absolute / relative path to save audio file
-            textfilename (str, optional): Filename of text file (*.csv)
-            textfilepath (str, optional): Absolute / relative path to save text file
+            audiofile (str): File path/name of audio file
+            textfile (str, optional): File path/name of text file (*.csv)
+            asrmode (str, optional): ASR mode in self.__asrmode
         '''
 
-        audiofilename = self.__configurefilename(filename = audiofilename, ext = self.__audioextension)
-        textfilename = self.__configurefilename(filename = textfilename, ext = self.__textextension)
+        ext = audiofile.split(".")[-1]
 
-        audiofullpath = self.__configurepath(filename = audiofilename, designatedpath = audiofilepath, fallbackpath = self.audiopath)
-        textfullpath = self.__configurepath(filename = textfilename, designatedpath = textfilepath, fallbackpath = self.textpath)
+        if ext not in self.__audioextension:
 
-        if os.path.exists(textfullpath): 
+            logger.error(f"Audio file has to end with extension in {self.__audioextension}")
 
-            logger.info(f"{textfullpath} exists. Conversion of speech -> text skipped")
+            return
+
+        if os.path.exists(audiofile) is False:
+
+            logger.error(f"Audio file not exist: {audiofile}")
+
+            return
+
+        if (textfile is not None) and (os.path.exists(textfile)):
+
+            logger.info(f"{textfile} exists. Conversion of speech -> text skipped")
+            return
 
         else:
 
-            df = self._get_large_audio_transcription(audiofullpath, mode)
+            textfile = self.__configurepath(self.__generatefiletitle + "." + self.__textextension, None, self.textpath)
 
-            df.to_csv(textfullpath, index = False)
+        df = self._get_large_audio_transcription(audiofile, asrmode)
 
-            logger.info(f"Output text file saved at {textfullpath}")
+        df.to_csv(textfile, index = False)
 
-    def _get_large_audio_transcription(self, audiofullpath, mode):
+        logger.info(f"Output text file saved at {textfile}")
+
+    def _get_large_audio_transcription(self, audiofullpath, asrmode):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
 
         Parameters:
             audiofullpath (str): Absolute/relative path to  text file
+            asrmode (str): ASR mode in self.__asrmode
 
         Returns:
             DataFrame: df with rows of texts
         '''
 
 
-        logging.info(f"Loading {mode} audio2text mode")
+        logging.info(f"Loading {asrmode} audio2text mode")
 
         audiofilename = audiofullpath.split(os.sep)[-1].split(self.__audioextension)[0]
 
@@ -183,8 +224,8 @@ class Youtube2Text:
         whole_text = []
         wav_info = []
 
-        if mode == "huggingface":
-
+        if asrmode == "huggingface":
+            logger.info("Load Huggingface ASR backend")
             pipe = pipeline("automatic-speech-recognition")
 
 
@@ -198,7 +239,7 @@ class Youtube2Text:
 
             pipe = pipeline("automatic-speech-recognition")
 
-            if mode == 'default':
+            if asrmode == 'default':
                 # recognize the chunk
                 with sr.AudioFile(chunkfilepath) as source:
                     audio_listened = self.recognizer.record(source)
@@ -212,16 +253,16 @@ class Youtube2Text:
                         whole_text.append(text)
 
                     
-            elif mode == 'huggingface':
+            elif asrmode == 'huggingface':
                 
                 y, sr = librosa.load(chunkfilepath)
                 audiojson = pipe(y)
 
-                whole_text.append(f"{audiojson['text'].capitalize()}. ")#)
+                whole_text.append(f"{audiojson['text'].capitalize()}. ")
 
             else:
 
-                logger.critical(f"Audio to text mode not recognizable. Input: {mode}. Select between \"default\" and \"huggingface\".")
+                logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. Select between \"default\" and \"huggingface\".")
 
             wav_info.append(chunkfilename)
                 
@@ -252,23 +293,6 @@ class Youtube2Text:
         if not os.path.exists(path):
 
             os.makedirs(path)
-    
-    def __configurefilename(self, filename, ext):
-        '''
-        Append extension to filename if not done
-
-        Returns:
-            str: filename with extension
-        '''
-        if filename is None:
-            
-            filename = self.__generatefiletitle()
-
-        if not filename.endswith(ext):
-
-            filename = filename + ext
-            
-        return filename
 
         
     def __configurepath(self, filename, designatedpath, fallbackpath):

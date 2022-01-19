@@ -138,10 +138,7 @@ class Youtube2Text:
 
         audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
 
-        print(urlpath)
         yt = YouTube(urlpath)
-        
-        print(yt.streams[0])
 
         stream_url = yt.streams[0].url
 
@@ -187,7 +184,17 @@ class Youtube2Text:
             logger.info(f"{textfile} exists. Conversion of speech -> text skipped")
             return
 
-        else:
+        elif textfile is not None and textfile.find(os.sep) is not None:
+
+            textfilename = textfile.split(os.sep)[-1]
+            textfilepath = textfile[:len(textfile) - len(textfilename) - 1]
+
+            if not os.path.exists(textfilepath):
+                print(f"Text file path {textfilepath} do not exist. Fall back to default")
+
+            textfile = None
+        
+        if textfile is None:
 
             textfile = self.__configurepath(self.__generatefiletitle() + "." + self.__textextension, None, self.textpath)
 

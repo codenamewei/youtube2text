@@ -1,8 +1,8 @@
 import pandas as pd
 from pytube import YouTube
+import speech_recognition as sr
 import ffmpeg
 import os
-import speech_recognition as sr
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from transformers import pipeline
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class Youtube2Text:
     '''Youtube2Text Class to translates audio to text file'''
 
-    __audioextension = ["flac", "wav"]
+    __audioextension = ["wav", "flac", "wav"]
     __textextension = "csv"
     __asrmode = ["default", "huggingface"]
 
@@ -54,7 +54,7 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfile = None, audioformat = "flac", asrmode = 'default'):
+    def url2text(self, urlpath, outfile = None, audioformat = "wav", asrmode = 'default'):
         '''
         Convert youtube url to text
 
@@ -65,39 +65,47 @@ class Youtube2Text:
             asrmode (str, optional): ASR mode in self.__asrmode
         '''
         
-        if outfile.endswith(self.__textextension) is False:
-
-            logger.warning("outfile poorly defined. outfile have to ends with .csv")
-            
-            outfile = None
-
         outfilepath = None
-        
-        if(outfile.find(os.sep) != -1) and (outfile.endswith(self.__textextension)):
+        audiofile = None
 
-            textfile = outfile.split(os.sep)[-1]
-            outfilepath = outfile[0:len(outfile)  - len(textfile) - 1]
+        if outfile is not None:
+
+            if outfile.endswith(self.__textextension) is False:
+
+                logger.warning("outfile poorly defined. outfile have to ends with .csv")
+                
+                outfile = None
+
+            elif((outfile.find(os.sep) != -1) and (outfile.endswith(self.__textextension))):
+
+                textfile = outfile.split(os.sep)[-1]
+                outfilepath = outfile[0:len(outfile)  - len(textfile) - 1]
+
+            else:
+                if(outfile.endswith(self.__textextension)):
+                    textfile = outfile
+                    filename = outfile.split(".")[0]
+                    
+                else:    
+                    filename = self.__generatefiletitle()
+                    textfile = filename + "." + self.__textextension
+        
+                if audioformat not in self.__audioextension:
+                    audioformat = self.__audioextension[0]
+
+                audiofile = filename + "." +  audioformat
 
         else:
-            if(outfile.endswith(self.__textextension)):
-                textfile = outfile
-                filename = outfile.split(".")[0]
-                
-            else:    
-                filename = self.__generatefiletitle()
-                textfile = filename + "." + self.__textextension
-    
-            if audioformat not in self.__audioextension:
-                audioformat = self.__audioextension[0]
 
-            audiofile = filename + "." +  audioformat
-    
-
+            filename = self.__generatefiletitle()
+            audiofile = filename + "." + self.__audioextension[0]
+            textfile = filename + "." + self.__textextension
+        
         audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
         textfile = self.__configurepath(textfile, outfilepath, self.textpath)
-        
+
         self.url2audio(urlpath, audiofile = audiofile)
-        self.audio2text(audiofile = audiofile, textfilename = textfile, asrmode = asrmode)
+        self.audio2text(audiofile = audiofile, textfile = textfile, asrmode = asrmode)
 
     def url2audio(self, urlpath, audiofile = None):
         '''
@@ -116,19 +124,24 @@ class Youtube2Text:
 
             if audioformat in self.__audioextension:
                 
-                audiofile = audiofile.split(os.sep)[-1]
-                outfilepath = audiofile[0:len(audiofile) - len(audiofile) - 1]
+                if audiofile.find(os.sep) != -1:
+                    buffer = audiofile.split(os.sep)[-1]
+                    outfilepath = audiofile[:len(audiofile) - len(buffer) - 1]
+                    audiofile = buffer
             
             else:
-                audiofile = self.__generatefiletitle + self.__audioextension[0]
+                audiofile = self.__generatefiletitle() + self.audiofilename[0]
 
         else:
 
-            audiofile = self.__generatefiletitle + self.__audioextension[0]
+            audiofile = self.__generatefiletitle() + self.__audioextension[0]
 
         audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
-                
+
+        print(urlpath)
         yt = YouTube(urlpath)
+        
+        print(yt.streams[0])
 
         stream_url = yt.streams[0].url
 
@@ -176,7 +189,7 @@ class Youtube2Text:
 
         else:
 
-            textfile = self.__configurepath(self.__generatefiletitle + "." + self.__textextension, None, self.textpath)
+            textfile = self.__configurepath(self.__generatefiletitle() + "." + self.__textextension, None, self.textpath)
 
         df = self._get_large_audio_transcription(audiofile, asrmode)
 
@@ -198,9 +211,9 @@ class Youtube2Text:
         '''
 
 
-        logging.info(f"Loading {asrmode} audio2text mode")
+        logger.info(f"Loading {asrmode} audio2text mode")
 
-        audiofilename = audiofullpath.split(os.sep)[-1].split(self.__audioextension)[0]
+        audiofilename = audiofullpath.split(os.sep)[-1].split(".")[0]
 
         audiochunkfullpath = os.path.join(self.audiochunkpath, audiofilename)
 
@@ -220,14 +233,12 @@ class Youtube2Text:
             # keep the silence for 1 second, adjustable as well
             keep_silence=500,
         )
-
         whole_text = []
         wav_info = []
 
         if asrmode == "huggingface":
             logger.info("Load Huggingface ASR backend")
             pipe = pipeline("automatic-speech-recognition")
-
 
         # process each chunk
         for i, audio_chunk in enumerate(chunks, start=1):
@@ -237,9 +248,8 @@ class Youtube2Text:
             chunkfilepath = os.path.join(audiochunkfullpath, chunkfilename)
             audio_chunk.export(chunkfilepath, format="wav")
 
-            pipe = pipeline("automatic-speech-recognition")
-
             if asrmode == 'default':
+                
                 # recognize the chunk
                 with sr.AudioFile(chunkfilepath) as source:
                     audio_listened = self.recognizer.record(source)
@@ -252,10 +262,9 @@ class Youtube2Text:
                         text = f"{text.capitalize()}. "
                         whole_text.append(text)
 
-                    
             elif asrmode == 'huggingface':
                 
-                y, sr = librosa.load(chunkfilepath)
+                y, se = librosa.load(chunkfilepath)
                 audiojson = pipe(y)
 
                 whole_text.append(f"{audiojson['text'].capitalize()}. ")

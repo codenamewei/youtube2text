@@ -11,7 +11,6 @@ import librosa
 import logging
 import sys
 
-
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)d] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 class Youtube2Text:
     '''Youtube2Text Class to translates audio to text file'''
 
-    __audioextension = ["wav", "flac", "wav"]
+    __audioextension = ["flac", "wav"]
     __textextension = "csv"
     __asrmode = ["default", "huggingface"]
 
@@ -47,7 +46,7 @@ class Youtube2Text:
         self.recognizer = sr.Recognizer()
 
         self.textpath = os.path.join(outputpath, "text")
-        self.audiopath = os.path.join(outputpath, "wav")
+        self.audiopath = os.path.join(outputpath, "audio")
         self.audiochunkpath = os.path.join(outputpath, "audio-chunks")
         
         self.__createdir(self.textpath)
@@ -72,7 +71,7 @@ class Youtube2Text:
 
             if outfile.endswith(self.__textextension) is False:
 
-                logger.warning("outfile poorly defined. outfile have to ends with .csv")
+                logger.warning("Text file poorly defined. outfile have to ends with .csv")
                 
                 outfile = None
 
@@ -115,13 +114,13 @@ class Youtube2Text:
             urlpath (str): Youtube url
             audiofile (str, optional): File path/name to save audio file
         '''
-
+        
+        audioformat = self.__audioextension[0]
         outfilepath = None
 
         if(audiofile is not None) and (audiofile.find(".") != -1):
 
             audioformat = audiofile.split(".")[-1]
-
             if audioformat in self.__audioextension:
                 
                 if audiofile.find(os.sep) != -1:
@@ -130,29 +129,38 @@ class Youtube2Text:
                     audiofile = buffer
             
             else:
-                audiofile = self.__generatefiletitle() + self.audiofilename[0]
+                audiofile = self.__generatefiletitle() + "." + self.audiofilename[0]
 
         else:
 
-            audiofile = self.__generatefiletitle() + self.__audioextension[0]
+            audiofile = self.__generatefiletitle() + "." +  self.__audioextension[0]
 
         audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
 
-        yt = YouTube(urlpath)
+        if os.path.exists(audiofile):
 
-        stream_url = yt.streams[0].url
+            logger.info(f"Audio file exist at {audiofile}. Download skipped")
 
-        audio, err = (
-            ffmpeg
-            .input(stream_url)
-            .output("pipe:", format=audioformat, acodec='pcm_s16le')  # Select WAV output format, and pcm_s16le auidio codec. My add ar=sample_rate
-            .run(capture_stdout=True)
-        )
+        else:
 
-        with open(audiofile, 'wb') as f:
-            f.write(audio)
+            yt = YouTube(urlpath)
 
-        logger.info("Download completed")
+            stream_url = yt.streams[0].url
+
+            acodec = 'pcm_s16le' if audioformat == 'wav' else audioformat
+            
+            audio, err = (
+                ffmpeg
+                .input(stream_url)
+                .output("pipe:", format=audioformat, acodec = acodec)  
+                .run(capture_stdout=True)
+            )
+
+
+            with open(audiofile, 'wb') as f:
+                f.write(audio)
+
+            logger.info(f"Download completed at {audiofile}")
 
 
     def audio2text(self, audiofile, textfile = None, asrmode = 'default'):
@@ -166,16 +174,17 @@ class Youtube2Text:
         '''
 
         ext = audiofile.split(".")[-1]
+        audiochunkpath = None
 
         if ext not in self.__audioextension:
 
-            logger.error(f"Audio file has to end with extension in {self.__audioextension}")
-
+            logger.error(f"Audio file has to end with extension in {self.__audioextension}. Operation abort.")
+ 
             return
 
         if os.path.exists(audiofile) is False:
 
-            logger.error(f"Audio file not exist: {audiofile}")
+            logger.error(f"Audio file not exist: {audiofile}. Execution abort.")
 
             return
 
@@ -184,27 +193,35 @@ class Youtube2Text:
             logger.info(f"{textfile} exists. Conversion of speech -> text skipped")
             return
 
-        elif textfile is not None and textfile.find(os.sep) is not None:
+        elif textfile is not None and textfile.find(os.sep) != -1:
 
             textfilename = textfile.split(os.sep)[-1]
             textfilepath = textfile[:len(textfile) - len(textfilename) - 1]
-
+            
             if not os.path.exists(textfilepath):
-                print(f"Text file path {textfilepath} do not exist. Fall back to default")
+                logger.warning(f"Text file path {textfilepath} do not exist. Fall back to default")
+                textfile = None
+            else:
 
-            textfile = None
-        
+                if textfile.find(self.textpath) != -1:
+                    audiochunkpath = textfile.replace(self.textpath, self.audiochunkpath)
+                else: 
+                    audiochunkpath = textfile[:len(textfile) - len(ext)]
+
         if textfile is None:
+            filetitle = self.__generatefiletitle()
 
-            textfile = self.__configurepath(self.__generatefiletitle() + "." + self.__textextension, None, self.textpath)
+            textfile = self.__configurepath(filetitle + "." + self.__textextension, None, self.textpath)
+            
+            audiochunkpath = self.__configurepath(filetitle, None, self.audiochunkpath)
 
-        df = self._get_large_audio_transcription(audiofile, asrmode)
+        df = self._get_large_audio_transcription(audiofile, audiochunkpath, asrmode)
 
         df.to_csv(textfile, index = False)
 
         logger.info(f"Output text file saved at {textfile}")
 
-    def _get_large_audio_transcription(self, audiofullpath, asrmode):
+    def _get_large_audio_transcription(self, audiofullpath, audiochunkpath, asrmode):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
@@ -220,17 +237,25 @@ class Youtube2Text:
 
         logger.info(f"Loading {asrmode} audio2text mode")
 
-        audiofilename = audiofullpath.split(os.sep)[-1].split(".")[0]
-
-        audiochunkfullpath = os.path.join(self.audiochunkpath, audiofilename)
-
-        if not os.path.isdir(audiochunkfullpath):
-            os.mkdir(audiochunkfullpath)
+        
+        if not os.path.isdir(audiochunkpath):
+            os.mkdir(audiochunkpath)
 
         # open the audio file using pydub
-        logger.info(f'Wav -> Text: {audiofilename}')
-        sound = AudioSegment.from_wav(audiofullpath)
+        logger.info(f'Audio -> Text: {audiofullpath}')
+        logger.info(f"Audio chunk path: {audiochunkpath}")
 
+        audioformat = audiofullpath.split(".")[-1]
+
+        sound = None
+        if audioformat == "wav":
+
+            sound = AudioSegment.from_wav(audiofullpath)
+
+        elif audioformat == "flac":
+
+            sound = AudioSegment.from_file(audiofullpath, audioformat)
+        
         # split audio sound where silence is 700 miliseconds or more and get chunks
         chunks = split_on_silence(sound,
             # experiment with this value for your target audio file
@@ -251,9 +276,9 @@ class Youtube2Text:
         for i, audio_chunk in enumerate(chunks, start=1):
             # export audio chunk and save it in
             # the `folder_name` directory.
-            chunkfilename = f"chunk{i}.wav"
-            chunkfilepath = os.path.join(audiochunkfullpath, chunkfilename)
-            audio_chunk.export(chunkfilepath, format="wav")
+            chunkfilename = f"chunk{i}." + audioformat 
+            chunkfilepath = os.path.join(audiochunkpath, chunkfilename)
+            audio_chunk.export(chunkfilepath, format=audioformat)
 
             if asrmode == 'default':
                 
@@ -275,6 +300,8 @@ class Youtube2Text:
                 audiojson = pipe(y)
 
                 whole_text.append(f"{audiojson['text'].capitalize()}. ")
+
+                # FIXME: Haven't implement huggingface 
 
             else:
 

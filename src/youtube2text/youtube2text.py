@@ -53,7 +53,7 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfile = None, audioformat = "wav", asrmode = 'default'):
+    def url2text(self, urlpath, outfile = None, audioformat = "flac", asrmode = 'default'):
         '''
         Convert youtube url to text
 
@@ -76,7 +76,6 @@ class Youtube2Text:
                 outfile = None
 
             elif((outfile.find(os.sep) != -1) and (outfile.endswith(self.__textextension))):
-
                 textfile = outfile.split(os.sep)[-1]
                 outfilepath = outfile[0:len(outfile)  - len(textfile) - 1]
 
@@ -175,6 +174,7 @@ class Youtube2Text:
 
         ext = audiofile.split(".")[-1]
         audiochunkpath = None
+        audiochunkfolder = None
 
         if ext not in self.__audioextension:
 
@@ -195,41 +195,48 @@ class Youtube2Text:
 
         elif textfile is not None and textfile.find(os.sep) != -1:
 
-            textfilename = textfile.split(os.sep)[-1]
-            textfilepath = textfile[:len(textfile) - len(textfilename) - 1]
+            textfilewithext = textfile.split(os.sep)[-1]
+            textfilepath = textfile[:len(textfile) - len(textfilewithext) - 1]
             
             if not os.path.exists(textfilepath):
                 logger.warning(f"Text file path {textfilepath} do not exist. Fall back to default")
                 textfile = None
             else:
 
+                audiochunkfolder = textfilewithext.split(".")[0]
+
                 if textfile.find(self.textpath) != -1:
-                    audiochunkpath = textfile.replace(self.textpath, self.audiochunkpath)
+                
+                    audiochunkfolder = textfilewithext.split(".")[0]
+                    audiochunkpath = self.audiochunkpath
                 else: 
-                    audiochunkpath = textfile[:len(textfile) - len(ext)]
+                    audiochunkpath = textfile[:len(textfile) - len(textfilewithext)]
+                    
 
         if textfile is None:
-            filetitle = self.__generatefiletitle()
 
-            textfile = self.__configurepath(filetitle + "." + self.__textextension, None, self.textpath)
-            
-            audiochunkpath = self.__configurepath(filetitle, None, self.audiochunkpath)
+            textfilename = self.__generatefiletitle()
+            audiochunkfolder = textfilename #both audio chunk folder and csv possess the same name
+            textfile = self.__configurepath(audiochunkfolder + "." + self.__textextension, None, self.textpath)
+    
 
-        df = self._get_large_audio_transcription(audiofile, audiochunkpath, asrmode)
+        df = self._get_large_audio_transcription(audiofile, audiochunkfolder = audiochunkfolder , asrmode = asrmode, audiochunkpath = audiochunkpath)
 
         df.to_csv(textfile, index = False)
 
         logger.info(f"Output text file saved at {textfile}")
 
-    def _get_large_audio_transcription(self, audiofullpath, audiochunkpath, asrmode):
+    def _get_large_audio_transcription(self, audiofullpath, audiochunkfolder, asrmode, audiochunkpath = None):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
 
         Parameters:
             audiofullpath (str): Absolute/relative path to  text file
+            audiochunkfolder (str): folder name of audio chunk
             asrmode (str): ASR mode in self.__asrmode
-
+            audiochunkpath (str, optional): Absolute/relative path to save snippet of audio file
+        
         Returns:
             DataFrame: df with rows of texts
         '''
@@ -237,7 +244,8 @@ class Youtube2Text:
 
         logger.info(f"Loading {asrmode} audio2text mode")
 
-        
+        audiochunkpath = self.__configurepath(audiochunkfolder, audiochunkpath, self.audiochunkpath)
+
         if not os.path.isdir(audiochunkpath):
             os.mkdir(audiochunkpath)
 
@@ -307,12 +315,12 @@ class Youtube2Text:
 
                 logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. Select between \"default\" and \"huggingface\".")
 
-            audio_file.append(chunkfilename)
+            audio_file.append(os.path.join(audiochunkfolder, chunkfilename))
                 
 
 
         # return as df
-        df = pd.DataFrame({"text": whole_text, "wav": audio_file})
+        df = pd.DataFrame({"text": whole_text, "file": audio_file})
 
         return df
     

@@ -266,7 +266,7 @@ class Youtube2Text:
             keep_silence=500,
         )
         whole_text = []
-        wav_info = []
+        audio_file = []
 
         if asrmode == "huggingface":
             logger.info("Load Huggingface ASR backend")
@@ -307,12 +307,12 @@ class Youtube2Text:
 
                 logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. Select between \"default\" and \"huggingface\".")
 
-            wav_info.append(chunkfilename)
+            audio_file.append(chunkfilename)
                 
 
 
         # return as df
-        df = pd.DataFrame({"text": whole_text, "wav": wav_info})
+        df = pd.DataFrame({"text": whole_text, "wav": audio_file})
 
         return df
     

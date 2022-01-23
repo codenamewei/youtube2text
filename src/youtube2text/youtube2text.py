@@ -81,17 +81,22 @@ class Youtube2Text:
 
             else:
                 if(outfile.endswith(self.__textextension)):
-                    textfile = outfile
-                    filename = outfile.split(".")[0]
+                    
+                    rawfilename = outfile.split(".")[0]
+                    filename = self.__removeinvalidcharacter(rawfilename)
+                    textfile =  filename + "." + self.__textextension
                     
                 else:    
                     filename = self.__generatefiletitle()
                     textfile = filename + "." + self.__textextension
         
                 if audioformat not in self.__audioextension:
+
+                    defaultaudioformat = self.__audioextension[0]
+                    logger.warning(f"Selected audio format not permitted: {audioformat}. Fall back to default: {defaultaudioformat}")
                     audioformat = self.__audioextension[0]
 
-                audiofile = filename + "." +  audioformat
+                audiofile = filename + "." + audioformat
 
         else:
 
@@ -231,8 +236,8 @@ class Youtube2Text:
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
 
-        Parameters:
-            audiofullpath (str): Absolute/relative path to  text file
+        1Parameters:
+            audiofullpath (str): Absolute/relative path to text file
             audiochunkfolder (str): folder name of audio chunk
             asrmode (str): ASR mode in self.__asrmode
             audiochunkpath (str, optional): Absolute/relative path to save snippet of audio file
@@ -251,7 +256,7 @@ class Youtube2Text:
 
         # open the audio file using pydub
         logger.info(f'Audio -> Text: {audiofullpath}')
-        logger.info(f"Audio chunk path: {audiochunkpath}")
+        #logger.info(f"Audio chunk path: {audiochunkpath}")
 
         audioformat = audiofullpath.split(".")[-1]
 
@@ -324,6 +329,28 @@ class Youtube2Text:
 
         return df
     
+
+    def __removeinvalidcharacter(self, strin):
+        '''
+        Removal of invalid character when creating folder/filename
+
+        Parameters:
+            strin (str): Input string
+
+        Returns:
+            str: Processed valid string
+        '''
+        
+        removal_list= [i for i in r"\/:*?<>|\""]
+
+        strout = strin
+
+        for i in removal_list: 
+            strout = strout.replace(i, "_")
+
+        return strout
+
+
 
     def __generatefiletitle(self):
         '''

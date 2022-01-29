@@ -53,7 +53,7 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfile = None, audioformat = "flac", asrmode = 'default'):
+    def url2text(self, urlpath, outfile = None, audioformat = "flac", audiosamplingrate=16000, asrmode = 'default'):
         '''
         Convert youtube url to text
 
@@ -61,6 +61,7 @@ class Youtube2Text:
             urlpath (str): Youtube url
             outfile (str, optional): File path/name of output file (.csv)
             audioformat (str, optional): Audioformat supported in self.__audioextension
+            audiosamplingrate (int, optional): Audio sampling rate
             asrmode (str, optional): ASR mode in self.__asrmode
         '''
         
@@ -107,16 +108,17 @@ class Youtube2Text:
         audiofile = self.__configurepath(audiofile, outfilepath, self.audiopath)
         textfile = self.__configurepath(textfile, outfilepath, self.textpath)
 
-        self.url2audio(urlpath, audiofile = audiofile)
+        self.url2audio(urlpath, audiofile = audiofile, audiosamplingrate = audiosamplingrate)
         self.audio2text(audiofile = audiofile, textfile = textfile, asrmode = asrmode)
 
-    def url2audio(self, urlpath, audiofile = None):
+    def url2audio(self, urlpath, audiofile = None, audiosamplingrate=16000):
         '''
         Convert youtube url to audiofile
 
         Parameters:
             urlpath (str): Youtube url
             audiofile (str, optional): File path/name to save audio file
+            audiosamplingrate (int, optional): Audio sampling rate
         '''
         
         audioformat = self.__audioextension[0]
@@ -156,10 +158,9 @@ class Youtube2Text:
             audio, err = (
                 ffmpeg
                 .input(stream_url)
-                .output("pipe:", format=audioformat, acodec = acodec)  
+                .output("pipe:", format=audioformat,  **{'ar': str(audiosamplingrate),'acodec': acodec})
                 .run(capture_stdout=True)
             )
-
 
             with open(audiofile, 'wb') as f:
                 f.write(audio)
@@ -264,7 +265,7 @@ class Youtube2Text:
         if audioformat == "wav":
 
             sound = AudioSegment.from_wav(audiofullpath)
-
+    
         elif audioformat == "flac":
 
             sound = AudioSegment.from_file(audiofullpath, audioformat)

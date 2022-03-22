@@ -24,14 +24,14 @@ Three folders will be created to store the output files.
 ```
 <Own Path> or <HOME_DIRECTORY>/youtube2text
 │
-├── wav/
-│   └── 2022Jan02_011802.wav
+├── audio/
+│   └── 2022Jan02_011802.flac
 |
 ├── audio-chunks/
 │   └── 2022Jan02_011802
-│       ├── chunk1.wav
-│       ├── chunk2.wav
-│       └── chunk3.wav
+│       ├── chunk1.flac
+│       ├── chunk2.flac
+│       └── chunk3.flac
 │   
 └── text/
     └── 2022Jan02_011802.csv
@@ -79,7 +79,7 @@ def url2text(self, urlpath, outfilename = None):
 
     Parameters:
         urlpath (str): Youtube url
-        outfilename (str, optional): Filename of output file (.wav, *.csv)
+        outfilename (str, optional): Filename of output file (.flac, *.csv)
     '''
 ```
 
@@ -91,7 +91,7 @@ def url2audio(self, urlpath, audiofilename, audiofilepath = None):
 
     Parameters:
         urlpath (str): Youtube url
-        audiofilename (str): Filename of audio file (*.wav)
+        audiofilename (str): Filename of audio file (*.flac)
         audiofilepath (str, optional): Absolute / relative path to save audio file
     '''
 ```
@@ -103,7 +103,7 @@ def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, t
     Convert audio to csv file
 
     Parameters:
-        audiofilename (str): Filename of audio file (*.wav)
+        audiofilename (str): Filename of audio file (*.flac)
         audiofilepath (str, optional): Absolute / relative path to save audio file
         textfilename (str, optional): Filename of text file (*.csv)
         textfilepath (str, optional): Absolute / relative path to save text file

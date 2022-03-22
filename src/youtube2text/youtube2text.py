@@ -5,7 +5,6 @@ import ffmpeg
 import os
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-from transformers import pipeline
 from datetime import datetime
 import librosa
 import logging
@@ -25,7 +24,7 @@ class Youtube2Text:
 
     __audioextension = ["flac", "wav"]
     __textextension = "csv"
-    __asrmode = ["default", "huggingface"]
+    __asrmode = ["default"]
 
     def __init__(self, outputpath = None):
         '''
@@ -282,10 +281,6 @@ class Youtube2Text:
         whole_text = []
         audio_file = []
 
-        if asrmode == "huggingface":
-            logger.info("Load Huggingface ASR backend")
-            pipe = pipeline("automatic-speech-recognition")
-
         # process each chunk
         for i, audio_chunk in enumerate(chunks, start=1):
             # export audio chunk and save it in
@@ -307,19 +302,9 @@ class Youtube2Text:
                     else:
                         text = f"{text.capitalize()}. "
                         whole_text.append(text)
-
-            elif asrmode == 'huggingface':
-                
-                y, se = librosa.load(chunkfilepath)
-                audiojson = pipe(y)
-
-                whole_text.append(f"{audiojson['text'].capitalize()}. ")
-
-                # FIXME: Haven't implement huggingface 
-
             else:
 
-                logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. Select between \"default\" and \"huggingface\".")
+                logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. .")
 
             audio_file.append(os.path.join(audiochunkfolder, chunkfilename))
                 

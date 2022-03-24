@@ -24,7 +24,6 @@ class Youtube2Text:
 
     __audioextension = ["flac", "wav"]
     __textextension = "csv"
-    __asrmode = ["default"]
 
     def __init__(self, outputpath = None):
         '''
@@ -52,7 +51,7 @@ class Youtube2Text:
         self.__createdir(self.audiopath)
         self.__createdir(self.audiochunkpath)
 
-    def url2text(self, urlpath, outfile = None, audioformat = "flac", audiosamplingrate=16000, asrmode = 'default'):
+    def url2text(self, urlpath, outfile = None, audioformat = "flac", audiosamplingrate=16000):
         '''
         Convert youtube url to text
 
@@ -61,7 +60,6 @@ class Youtube2Text:
             outfile (str, optional): File path/name of output file (.csv)
             audioformat (str, optional): Audioformat supported in self.__audioextension
             audiosamplingrate (int, optional): Audio sampling rate
-            asrmode (str, optional): ASR mode in self.__asrmode
         '''
         
         outfilepath = None
@@ -108,7 +106,7 @@ class Youtube2Text:
         textfile = self.__configurepath(textfile, outfilepath, self.textpath)
 
         self.url2audio(urlpath, audiofile = audiofile, audiosamplingrate = audiosamplingrate)
-        self.audio2text(audiofile = audiofile, textfile = textfile, asrmode = asrmode)
+        self.audio2text(audiofile = audiofile, textfile = textfile)
 
     def url2audio(self, urlpath, audiofile = None, audiosamplingrate=16000):
         '''
@@ -154,6 +152,8 @@ class Youtube2Text:
 
             acodec = 'pcm_s16le' if audioformat == 'wav' else audioformat
             
+            logger.info(f"Audio at sample rate {audiosamplingrate}")
+            
             audio, err = (
                 ffmpeg
                 .input(stream_url)
@@ -167,14 +167,13 @@ class Youtube2Text:
             logger.info(f"Download completed at {audiofile}")
 
 
-    def audio2text(self, audiofile, textfile = None, asrmode = 'default'):
+    def audio2text(self, audiofile, textfile = None):
         '''
         Convert audio to csv file
 
         Parameters:
             audiofile (str): File path/name of audio file
             textfile (str, optional): File path/name of text file (*.csv)
-            asrmode (str, optional): ASR mode in self.__asrmode
         '''
 
         ext = audiofile.split(".")[-1]
@@ -225,13 +224,13 @@ class Youtube2Text:
             textfile = self.__configurepath(audiochunkfolder + "." + self.__textextension, None, self.textpath)
     
 
-        df = self._get_large_audio_transcription(audiofile, audiochunkfolder = audiochunkfolder , asrmode = asrmode, audiochunkpath = audiochunkpath)
+        df = self._get_large_audio_transcription(audiofile, audiochunkfolder = audiochunkfolder, audiochunkpath = audiochunkpath)
 
         df.to_csv(textfile, index = False)
 
         logger.info(f"Output text file saved at {textfile}")
 
-    def _get_large_audio_transcription(self, audiofullpath, audiochunkfolder, asrmode, audiochunkpath = None):
+    def _get_large_audio_transcription(self, audiofullpath, audiochunkfolder, audiochunkpath = None):
         '''
         Splitting the large audio file into chunks
         and apply speech recognition on each of these chunks
@@ -239,15 +238,11 @@ class Youtube2Text:
         1Parameters:
             audiofullpath (str): Absolute/relative path to text file
             audiochunkfolder (str): folder name of audio chunk
-            asrmode (str): ASR mode in self.__asrmode
             audiochunkpath (str, optional): Absolute/relative path to save snippet of audio file
         
         Returns:
             DataFrame: df with rows of texts
         '''
-
-
-        logger.info(f"Loading {asrmode} audio2text mode")
 
         audiochunkpath = self.__configurepath(audiochunkfolder, audiochunkpath, self.audiochunkpath)
 
@@ -289,22 +284,18 @@ class Youtube2Text:
             chunkfilepath = os.path.join(audiochunkpath, chunkfilename)
             audio_chunk.export(chunkfilepath, format=audioformat)
 
-            if asrmode == 'default':
                 
-                # recognize the chunk
-                with sr.AudioFile(chunkfilepath) as source:
-                    audio_listened = self.recognizer.record(source)
-                    # try converting it to text
-                    try:
-                        text = self.recognizer.recognize_google(audio_listened)
-                    except sr.UnknownValueError as e:
-                        whole_text.append("None")
-                    else:
-                        text = f"{text.capitalize()}. "
-                        whole_text.append(text)
-            else:
-
-                logger.critical(f"Audio to text mode not recognizable. Input: {asrmode}. .")
+            # recognize the chunk
+            with sr.AudioFile(chunkfilepath) as source:
+                audio_listened = self.recognizer.record(source)
+                # try converting it to text
+                try:
+                    text = self.recognizer.recognize_google(audio_listened)
+                except sr.UnknownValueError as e:
+                    whole_text.append("None")
+                else:
+                    text = f"{text.capitalize()}. "
+                    whole_text.append(text)
 
             audio_file.append(os.path.join(audiochunkfolder, chunkfilename))
                 

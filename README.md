@@ -53,6 +53,7 @@ python setup.py install
 ```
 
 ### How to use 
+- Using the library requires **internet connection** for both downloading youtube videos and speech recognition operation
 ```
 from youtube2text import Youtube2Text
 
@@ -73,39 +74,39 @@ Check out more at [howtouse.ipynb](tests/howtouse.ipynb)
 
 #### Youtube -> Text
 ```
-def url2text(self, urlpath, outfilename = None):
+def url2text(self, urlpath, outfile = None, audioformat = "flac", audiosamplingrate=16000):
     '''
     Convert youtube url to text
 
     Parameters:
         urlpath (str): Youtube url
-        outfilename (str, optional): Filename of output file (.flac, *.csv)
+        outfile (str, optional): File path/name of output file (.csv)
+        audioformat (str, optional): Audioformat supported in self.__audioextension
+        audiosamplingrate (int, optional): Audio sampling rate
     '''
 ```
 
 #### Youtube -> Audio
 ```
-def url2audio(self, urlpath, audiofilename, audiofilepath = None):
+def url2audio(self, urlpath, audiofile = None, audiosamplingrate=16000):
     '''
     Convert youtube url to audiofile
 
     Parameters:
         urlpath (str): Youtube url
-        audiofilename (str): Filename of audio file (*.flac)
-        audiofilepath (str, optional): Absolute / relative path to save audio file
+        audiofile (str, optional): File path/name to save audio file
+        audiosamplingrate (int, optional): Audio sampling rate
     '''
 ```
 
 #### Audio -> Text
 ```
-def audio2text(self, audiofilename, audiofilepath = None, textfilename = None, textfilepath = None):
+def audio2text(self, audiofile, textfile = None):
     '''
     Convert audio to csv file
 
     Parameters:
-        audiofilename (str): Filename of audio file (*.flac)
-        audiofilepath (str, optional): Absolute / relative path to save audio file
-        textfilename (str, optional): Filename of text file (*.csv)
-        textfilepath (str, optional): Absolute / relative path to save text file
+        audiofile (str): File path/name of audio file
+        textfile (str, optional): File path/name of text file (*.csv)
     '''
 ```

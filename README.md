@@ -68,9 +68,7 @@ Check out more at [howtouse.ipynb](tests/howtouse.ipynb)
 - Support audio output of   
     - wav
     - flac
-- Support Automatic Speech Recognition with backend
-    - Native Python backend 
-    - Huggingface
+- Support Automatic Speech Recognition with [speech-recognition library](https://pypi.org/project/SpeechRecognition/)
 
 #### Youtube -> Text
 ```

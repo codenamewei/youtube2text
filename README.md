@@ -1,5 +1,5 @@
 
-## Converts Youtube URLs to Text with Speech Recognition 
+## 🔊 Converts Youtube URLs to Text with Speech Recognition 
 
 <p>
   <p align="center">
@@ -13,7 +13,7 @@
   <img alt="banner" src="https://user-images.githubusercontent.com/33477318/147850310-902fa3c3-910c-48de-815a-9e8f54487d73.jpg" width="800"><br>
 </div>
 
-### What does the library does?
+### 💡 What does the library does?
 
 - **Youtube -> Text**: Translate youtube urls as text file (csv)
 - **Youtube -> Audio**: Downloads youtube urls as audio file (wav, flac)
@@ -38,21 +38,21 @@ Three folders will be created to store the output files.
 ```
 
 
-### How to install
+### :package: How to install
 Install and update using [pip](https://pypi.org/project/youtube2text/)
 ```
 pip install youtube2text
 ```
 
 
-### Build from source 
+### 🔧Build from source 
 ```
 git clone <this_repo>
 cd <this_repo>
 python setup.py install
 ```
 
-### How to use 
+### ✨ How to use 
 - Using the library requires **internet connection** for both downloading youtube videos and speech recognition operation
 ```
 from youtube2text import Youtube2Text
@@ -64,7 +64,7 @@ converter.url2text(urlpath="https://www.youtube.com/watch?v=Ad9Q8rM0Am0&t=114s")
 
 Check out more at [howtouse.ipynb](tests/howtouse.ipynb)
 
-### Functions 
+### 📌 Functions 
 - Support audio output of   
     - wav
     - flac

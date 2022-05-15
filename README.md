@@ -108,6 +108,9 @@ def audio2text(self, audiofile, textfile = None):
         textfile (str, optional): File path/name of text file (*.csv)
     '''
 ```
+## 🚨 Note
+- This repository is highly dependent on [Pytube](https://github.com/pytube/pytube) to download Youtube videos, which at times buggy. Workaround is often provided in issues page of [Pytube repository](https://github.com/pytube/pytube/issues) or [in this repository](https://github.com/codenamewei/youtube2text/issues). Do take the intiative to file for issues to help others who will use this repository.
+
 ## 📝 Article 
 
 Read out the article below on how to use the repository. 
